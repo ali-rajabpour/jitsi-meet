@@ -117,6 +117,7 @@ const Presentation = () => {
     const pageRef = useRef<HTMLDivElement>(null);
     const [ available, setAvailable ] = useState({ height: 0, width: 0 });
     const [ pageAspect, setPageAspect ] = useState(0);
+    const [ loadFailed, setLoadFailed ] = useState(false);
     const fileId = info?.fileId;
     const fileType = info?.fileType;
     const page = info?.page ?? 1;
@@ -141,6 +142,7 @@ const Presentation = () => {
 
         setDoc(undefined);
         setPageAspect(0);
+        setLoadFailed(false);
 
         fetchPresignedUrl(store.getState(), fileId)
             .then(({ presignedUrl }) => fetch(presignedUrl))
@@ -170,6 +172,9 @@ const Presentation = () => {
                 dispatch(showErrorNotification({ titleKey: 'presentation.loadFailed' }));
                 if (isLocalPresenter(store.getState())) {
                     dispatch(stopPresentation());
+                } else {
+                    // Give this viewer the normal stage back; a new presentation tries again.
+                    setLoadFailed(true);
                 }
             });
 
@@ -277,7 +282,7 @@ const Presentation = () => {
     return (
         <div
             aria-label = { t('presentation.presentedBy', { name: presenterName, fileName: info.fileName }) }
-            className = { cx(classes.container, isInTileView && classes.hidden) }
+            className = { cx(classes.container, (isInTileView || loadFailed) && classes.hidden) }
             onKeyDown = { onKeyDown }
             role = 'region'
             tabIndex = { isPresenter ? 0 : -1 }>

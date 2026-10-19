@@ -1197,7 +1197,7 @@
     },
     "presentation": {
         "blue": "Blue",
-        "color": "Colour: {{color}}",
+        "color": "Color: {{color}}",
         "eraser": "Eraser",
         "green": "Green",
         "highlighter": "Highlighter",

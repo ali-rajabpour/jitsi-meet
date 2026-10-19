@@ -22,7 +22,7 @@ import {
     isParticipantModerator
 } from '../base/participants/functions';
 import MiddlewareRegistry from '../base/redux/MiddlewareRegistry';
-import { _FILE_REMOVED } from '../file-sharing/actionTypes';
+import { ADD_FILE, _FILE_LIST_RECEIVED, _FILE_REMOVED } from '../file-sharing/actionTypes';
 import { showNotification } from '../notifications/actions';
 import { NOTIFICATION_TIMEOUT_TYPE } from '../notifications/constants';
 import { setTileView } from '../video-layout/actions.any';
@@ -229,7 +229,10 @@ function applyRemoteState(store: IStore, info: IPresentationInfo) {
     const current = getPresentation(state);
     const localId = getLocalParticipant(state)?.id;
 
-    if (!isParticipantModerator(getParticipantById(state, info.presenterId))) {
+    // Late joiners can receive the presentation before the presenter's role or the file list. The state is
+    // kept until both are known; a file that is not shared in this meeting is never presented.
+    if (!isParticipantModerator(getParticipantById(state, info.presenterId))
+            || !state['features/file-sharing'].files.has(info.fileId)) {
         pending.set(info.presenterId, info);
 
         return;
@@ -378,12 +381,21 @@ MiddlewareRegistry.register(store => next => action => {
         const state = getState();
         const info = getPresentation(state);
 
-        if (pending.has(id) && role === PARTICIPANT_ROLE.MODERATOR) {
+        if (pending.has(id)) {
             applyRemoteState(store, pending.get(id)!);
         } else if (action.type === PARTICIPANT_ROLE_CHANGED && info?.presenterId === id
                 && role !== PARTICIPANT_ROLE.MODERATOR) {
             isLocalPresenter(state) ? stopLocal(store) : clear(store);
         }
+
+        return result;
+    }
+
+    case ADD_FILE:
+    case _FILE_LIST_RECEIVED: {
+        const result = next(action);
+
+        [ ...pending.values() ].forEach(info => applyRemoteState(store, info));
 
         return result;
     }
@@ -432,10 +444,13 @@ MiddlewareRegistry.register(store => next => action => {
         const after = getPresentation(getState());
 
         if (isLocalPresenter(getState())) {
-            if (before?.page !== after?.page) {
+            if (before?.page === after?.page) {
+                publishStateThrottled(store);
+            } else {
+                // Publish the new page right away, so viewers have it before any ink drawn on it.
                 resetOutgoing();
+                publishState(store);
             }
-            publishStateThrottled(store);
         }
 
         return result;

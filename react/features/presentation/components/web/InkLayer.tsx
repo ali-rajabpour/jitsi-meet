@@ -102,6 +102,7 @@ const InkLayer = ({ height, width }: IProps) => {
     const drawingRef = useRef<IStroke>();
     const erasingRef = useRef(false);
     const idleTimerRef = useRef<number>();
+    const frameRef = useRef<number>();
     const isPresenter = useSelector(isLocalPresenter);
     const { color, pointer, strokes, tool } = useSelector((state: IReduxState) => state['features/presentation']);
 
@@ -152,7 +153,16 @@ const InkLayer = ({ height, width }: IProps) => {
         }
     }, [ strokes, pointer, width, height ]);
 
-    useEffect(() => () => window.clearTimeout(idleTimerRef.current), []);
+    useEffect(() => () => {
+        window.clearTimeout(idleTimerRef.current);
+        frameRef.current && window.cancelAnimationFrame(frameRef.current);
+    }, []);
+
+    const flushStroke = useCallback(() => {
+        frameRef.current && window.cancelAnimationFrame(frameRef.current);
+        frameRef.current = undefined;
+        drawingRef.current && dispatch(upsertPresentationStroke(drawingRef.current));
+    }, []);
 
     const movePointer = useCallback((point?: { x: number; y: number; }) => {
         window.clearTimeout(idleTimerRef.current);
@@ -194,7 +204,9 @@ const InkLayer = ({ height, width }: IProps) => {
             if (p.length < MAX_STROKE_POINTS
                     && Math.hypot(point.x - p[p.length - 2], point.y - p[p.length - 1]) >= MIN_POINT_DISTANCE) {
                 drawingRef.current = { ...stroke, points: [ ...p, point.x, point.y ] };
-                dispatch(upsertPresentationStroke(drawingRef.current));
+
+                // Pointer events can fire far more often than the screen refreshes; publish once per frame.
+                frameRef.current ??= window.requestAnimationFrame(flushStroke);
             }
         } else if (erasingRef.current) {
             erase(point);
@@ -204,6 +216,7 @@ const InkLayer = ({ height, width }: IProps) => {
     }, [ tool, erase ]);
 
     const onPointerUp = useCallback(() => {
+        flushStroke();
         drawingRef.current = undefined;
         erasingRef.current = false;
     }, []);
