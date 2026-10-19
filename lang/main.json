@@ -1195,6 +1195,28 @@
         "rejected": "Rejected",
         "ringing": "Ringing…"
     },
+    "presentation": {
+        "blue": "Blue",
+        "color": "Colour: {{color}}",
+        "eraser": "Eraser",
+        "green": "Green",
+        "highlighter": "Highlighter",
+        "loadFailed": "Could not open the presented file",
+        "nextPage": "Next page",
+        "pageOf": "Page {{page}} of {{count}}",
+        "pen": "Pen",
+        "pointer": "Pointer",
+        "present": "Present",
+        "presentedBy": "{{name}} is presenting {{fileName}}",
+        "previousPage": "Previous page",
+        "red": "Red",
+        "stop": "Stop presenting",
+        "takenOver": "{{name}} took over the presentation",
+        "toolbar": "Presentation tools",
+        "yellow": "Yellow",
+        "zoomIn": "Zoom in",
+        "zoomOut": "Zoom out"
+    },
     "profile": {
         "avatar": "avatar",
         "setDisplayNameLabel": "Name",

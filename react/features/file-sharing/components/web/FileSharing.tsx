@@ -10,6 +10,9 @@ import Tooltip from '../../../base/tooltip/components/Tooltip';
 import BaseTheme from '../../../base/ui/components/BaseTheme.web';
 import Button from '../../../base/ui/components/web/Button';
 import { BUTTON_TYPES } from '../../../base/ui/constants.web';
+import { closeChat } from '../../../chat/actions.any';
+import { startPresentation } from '../../../presentation/actions';
+import { canPresent, isPresentableFile } from '../../../presentation/functions';
 import { downloadFile, removeFile } from '../../actions';
 import {
     isFileUploadingEnabled,
@@ -118,6 +121,12 @@ const FileSharing = () => {
     const { files } = useSelector((state: IReduxState) => state['features/file-sharing']);
     const sortedFiles = Array.from(files.values()).sort((a, b) => a.fileName.localeCompare(b.fileName));
     const isUploadEnabled = useSelector(isFileUploadingEnabled);
+    const isPresentEnabled = useSelector(canPresent);
+
+    const handlePresent = useCallback((fileId: string) => {
+        dispatch(startPresentation(fileId));
+        dispatch(closeChat());
+    }, [ dispatch ]);
 
     const handleDragEnter = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -218,6 +227,9 @@ const FileSharing = () => {
                                     <FileItem
                                         file = { file }
                                         onDownload = { fileId => dispatch(downloadFile(fileId)) }
+                                        onPresent = {
+                                            isPresentEnabled && isPresentableFile(file) ? handlePresent : undefined
+                                        }
                                         onRemove = { fileId => dispatch(removeFile(fileId)) }
                                         showRemoveButton = { isUploadEnabled } />
                                 </li>

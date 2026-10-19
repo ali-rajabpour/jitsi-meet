@@ -4,7 +4,7 @@ import { makeStyles } from 'tss-react/mui';
 
 import Avatar from '../../../base/avatar/components/Avatar';
 import Icon from '../../../base/icons/components/Icon';
-import { IconDownload, IconTrash } from '../../../base/icons/svg';
+import { IconDownload, IconShareDoc, IconTrash } from '../../../base/icons/svg';
 import BaseTheme from '../../../base/ui/components/BaseTheme.web';
 import {
     formatFileSize,
@@ -42,6 +42,11 @@ interface IFileItemProps {
      * Callback function when download button is clicked.
      */
     onDownload?: (fileId: string) => void;
+
+    /**
+     * Callback function when present button is clicked. The button is shown only when this is set.
+     */
+    onPresent?: (fileId: string) => void;
 
     /**
      * Callback function when remove button is clicked.
@@ -213,6 +218,7 @@ const FileItem = ({
     file,
     iconSize = 64,
     onDownload,
+    onPresent,
     onRemove,
     showAuthor = true,
     showRemoveButton = false,
@@ -231,6 +237,15 @@ const FileItem = ({
     const handleDownload = useCallback(() => {
         onDownload?.(file.fileId);
     }, [ onDownload, file.fileId ]);
+
+    /**
+     * Handles the present button click.
+     *
+     * @returns {void}
+     */
+    const handlePresent = useCallback(() => {
+        onPresent?.(file.fileId);
+    }, [ onPresent, file.fileId ]);
 
     /**
      * Handles the remove button click.
@@ -312,6 +327,20 @@ const FileItem = ({
                         {
                             actionsVisible && (
                                 <div className = { `${classes.buttonContainer} actionIconVisibility` }>
+                                    {
+                                        onPresent && (
+                                            <button
+                                                aria-label = { `${t('presentation.present')} ${file.fileName}` }
+                                                className = { classes.iconButton }
+                                                onClick = { handlePresent }
+                                                type = 'button'>
+                                                <Icon
+                                                    color = { BaseTheme.palette.fileSharingText }
+                                                    size = { 24 }
+                                                    src = { IconShareDoc } />
+                                            </button>
+                                        )
+                                    }
                                     {
                                         onDownload && (
                                             <button

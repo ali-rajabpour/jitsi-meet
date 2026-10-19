@@ -38,6 +38,26 @@ export function isLocalPresenter(state: IReduxState): boolean {
 }
 
 /**
+ * Checks whether the local participant may present files at all.
+ *
+ * @param {IReduxState} state - The redux state.
+ * @returns {boolean}
+ */
+export function canPresent(state: IReduxState): boolean {
+    return isPresentationEnabled(state) && isLocalParticipantModerator(state);
+}
+
+/**
+ * Checks whether a shared file is of a presentable type and fully uploaded.
+ *
+ * @param {IFileMetadata} file - The shared file.
+ * @returns {boolean}
+ */
+export function isPresentableFile(file: IFileMetadata): boolean {
+    return isPresentableType(file.fileType?.toLowerCase()) && !file.isDeleted && (file.progress ?? 100) === 100;
+}
+
+/**
  * Checks whether the local participant may present the given file.
  *
  * @param {IReduxState} state - The redux state.
@@ -45,9 +65,5 @@ export function isLocalPresenter(state: IReduxState): boolean {
  * @returns {boolean}
  */
 export function canPresentFile(state: IReduxState, file: IFileMetadata): boolean {
-    return isPresentationEnabled(state)
-        && isLocalParticipantModerator(state)
-        && isPresentableType(file.fileType?.toLowerCase())
-        && !file.isDeleted
-        && (file.progress ?? 100) === 100;
+    return canPresent(state) && isPresentableFile(file);
 }
