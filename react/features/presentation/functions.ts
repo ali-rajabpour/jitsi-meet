@@ -26,6 +26,16 @@ export function getPresentation(state: IReduxState): IPresentationInfo | undefin
 }
 
 /**
+ * Checks whether a document is being presented.
+ *
+ * @param {IReduxState} state - The redux state.
+ * @returns {boolean}
+ */
+export function isPresentationActive(state: IReduxState): boolean {
+    return Boolean(state['features/presentation']?.info);
+}
+
+/**
  * Checks whether the local participant is the active presenter.
  *
  * @param {IReduxState} state - The redux state.

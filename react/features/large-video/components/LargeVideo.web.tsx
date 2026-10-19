@@ -16,7 +16,7 @@ import StageParticipantNameLabel from '../../display-name/components/web/StagePa
 import { FILMSTRIP_BREAKPOINT } from '../../filmstrip/constants';
 import { getVerticalViewMaxWidth, isFilmstripResizable } from '../../filmstrip/functions.web';
 import Presentation from '../../presentation/components/web/Presentation';
-import { getPresentation } from '../../presentation/functions';
+import { isPresentationEnabled } from '../../presentation/functions';
 import SharedVideo from '../../shared-video/components/web/SharedVideo';
 import Captions from '../../subtitles/components/web/Captions';
 import { areClosedCaptionsEnabled } from '../../subtitles/functions.any';
@@ -87,9 +87,10 @@ interface IProps {
     _noAutoPlayVideo: boolean;
 
     /**
-     * Whether a document is being presented.
+     * Whether document presentation is enabled. The presentation component stays mounted so it can
+     * animate in and out.
      */
-    _presentationActive: boolean;
+    _presentationEnabled: boolean;
 
     /**
      * Whether or not the filmstrip is resizable.
@@ -210,7 +211,7 @@ class LargeVideo extends Component<IProps> {
             _isChatOpen,
             _isDisplayNameVisible,
             _noAutoPlayVideo,
-            _presentationActive,
+            _presentationEnabled,
             _showDominantSpeakerBadge,
             _whiteboardEnabled,
             _showSubtitles
@@ -226,7 +227,7 @@ class LargeVideo extends Component<IProps> {
                 style = { style }>
                 <SharedVideo />
                 {_whiteboardEnabled && <Whiteboard />}
-                {_presentationActive && <Presentation />}
+                {_presentationEnabled && <Presentation />}
                 <div id = 'etherpad' />
 
                 <Watermarks />
@@ -399,7 +400,7 @@ function _mapStateToProps(state: IReduxState) {
         _largeVideoParticipantId: largeVideoParticipant?.id ?? '',
         _localParticipantId: localParticipantId ?? '',
         _noAutoPlayVideo: Boolean(testingConfig?.noAutoPlayVideo),
-        _presentationActive: Boolean(getPresentation(state)),
+        _presentationEnabled: isPresentationEnabled(state),
         _resizableFilmstrip: isFilmstripResizable(state),
         _seeWhatIsBeingShared: Boolean(seeWhatIsBeingShared),
         _showDominantSpeakerBadge: !hideDominantSpeakerBadge,

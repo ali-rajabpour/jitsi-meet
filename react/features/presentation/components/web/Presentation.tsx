@@ -27,6 +27,11 @@ import PresenterToolbar from './PresenterToolbar';
 const TOP_OFFSET = 80;
 
 /**
+ * Duration of the enter, exit and resize animations, in milliseconds.
+ */
+const TRANSITION_MS = 300;
+
+/**
  * Padding around the page at 100% zoom, where the whole page fits the stage.
  */
 const PAGE_PADDING = 16;
@@ -45,7 +50,17 @@ const useStyles = makeStyles()(theme => {
             outline: 'none',
             position: 'absolute',
             top: TOP_OFFSET,
+            opacity: 0,
+            pointerEvents: 'none',
+            transform: 'scale(0.98)',
+            transition: `opacity ${TRANSITION_MS}ms ease, transform ${TRANSITION_MS}ms ease, `
+                + `width ${TRANSITION_MS}ms ease, height ${TRANSITION_MS}ms ease`,
             zIndex: 1
+        },
+        shown: {
+            opacity: 1,
+            pointerEvents: 'auto',
+            transform: 'none'
         },
         hidden: {
             display: 'none'
@@ -133,6 +148,16 @@ const Presentation = () => {
     const dispatch = useDispatch();
     const store = useStore<IReduxState>();
     const info = useSelector(getPresentation);
+
+    // Stay on screen while fading out after the presentation ends, showing what was presented last.
+    const lastInfoRef = useRef(info);
+    const isActive = Boolean(info);
+    const [ isRendered, setRendered ] = useState(isActive);
+    const [ isShown, setShown ] = useState(false);
+
+    if (info) {
+        lastInfoRef.current = info;
+    }
     const isPresenter = useSelector(isLocalPresenter);
     const isInTileView = useSelector(shouldDisplayTileView);
     const stageSize = useSelector(getStageSize, shallowEqual);
@@ -305,14 +330,32 @@ const Presentation = () => {
         }
     }, [ isPresenter, doc, page ]);
 
-    if (!info) {
+    useEffect(() => {
+        if (isActive) {
+            setRendered(true);
+
+            const frame = window.requestAnimationFrame(() => setShown(true));
+
+            return () => window.cancelAnimationFrame(frame);
+        }
+
+        setShown(false);
+
+        const timer = window.setTimeout(() => setRendered(false), TRANSITION_MS);
+
+        return () => window.clearTimeout(timer);
+    }, [ isActive ]);
+
+    const shownInfo = info ?? lastInfoRef.current;
+
+    if (!isRendered || !shownInfo) {
         return null;
     }
 
     return (
         <div
-            aria-label = { t('presentation.presentedBy', { name: presenterName, fileName: info.fileName }) }
-            className = { cx(classes.container, (isInTileView || loadFailed) && classes.hidden) }
+            aria-label = { t('presentation.presentedBy', { name: presenterName, fileName: shownInfo.fileName }) }
+            className = { cx(classes.container, isShown && classes.shown, (isInTileView || loadFailed) && classes.hidden) }
             onKeyDown = { onKeyDown }
             role = 'region'
             style = { stageSize }
@@ -321,7 +364,7 @@ const Presentation = () => {
             {
                 !isPresenter && (
                     <div className = { classes.label }>
-                        { t('presentation.presentedBy', { name: presenterName, fileName: info.fileName }) }
+                        { t('presentation.presentedBy', { name: presenterName, fileName: shownInfo.fileName }) }
                     </div>
                 )
             }

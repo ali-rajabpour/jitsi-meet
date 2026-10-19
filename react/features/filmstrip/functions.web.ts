@@ -20,6 +20,7 @@ import {
     isRemoteTrackMuted
 } from '../base/tracks/functions';
 import { isTrackStreamingStatusActive } from '../connection-indicator/functions';
+import { isPresentationActive } from '../presentation/functions';
 import { isSharingStatus } from '../shared-video/functions';
 import { LAYOUTS } from '../video-layout/constants';
 import { getCurrentLayout, getNotResponsiveTileViewGridDimensions } from '../video-layout/functions.web';
@@ -91,6 +92,9 @@ export function shouldRemoteVideosBeVisible(state: IReduxState) {
     return Boolean(
         contextMenuOpened
             || participantCount > 2
+
+            // A presentation takes the stage, so every camera moves to the filmstrip.
+            || (participantCount > 1 && isPresentationActive(state))
             || alwaysShowResizeBar
             // Always show the filmstrip when there is another participant to
             // show and the  local video is pinned, or the toolbar is displayed.
