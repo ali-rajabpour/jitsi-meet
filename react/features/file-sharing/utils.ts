@@ -13,6 +13,11 @@ export async function fetchPresignedUrl(
     const { fileSharing } = state['features/base/config'];
     const conference = getCurrentConference(state);
     const sessionId = conference?.getMeetingUniqueId();
+
+    if (!sessionId) {
+        throw new Error('The meeting is not joined yet.');
+    }
+
     const token: string = await conference?.getShortTermCredentials(conference?.getFileSharing()?.getIdentityType());
     const response = await fetch(`${fileSharing!.apiUrl!}/sessions/${sessionId}/files/${fileId}`, {
         method: 'GET',

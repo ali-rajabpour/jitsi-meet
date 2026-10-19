@@ -185,6 +185,10 @@ const Presentation = () => {
     const [ loadFailed, setLoadFailed ] = useState(false);
     const fileId = info?.fileId;
     const fileType = info?.fileType;
+
+    // Known once the conference is joined. A late joiner receives the presentation while still joining.
+    const meetingId: string | undefined = useSelector((state: IReduxState) =>
+        state['features/base/conference'].conference?.getMeetingUniqueId?.());
     const page = info?.page ?? 1;
     const zoom = info?.zoom ?? 1;
     const viewerScroll = !isPresenter && info && pageAspect > 0
@@ -201,7 +205,7 @@ const Presentation = () => {
 
     // Load the document whenever the presented file changes. The bytes stay in memory and are never saved.
     useEffect(() => {
-        if (!fileId || !fileType) {
+        if (!fileId || !fileType || !meetingId) {
             return;
         }
 
@@ -250,7 +254,7 @@ const Presentation = () => {
             cancelled = true;
             loaded?.destroy();
         };
-    }, [ fileId, fileType ]);
+    }, [ fileId, fileType, meetingId ]);
 
     // Track the space available for the page.
     useEffect(() => {
