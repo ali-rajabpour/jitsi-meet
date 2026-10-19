@@ -13,6 +13,9 @@ import { getPresentation, isLocalPresenter } from '../../functions';
 import logger from '../../logger';
 import { IPresentationDocument, loadDocument } from '../../pdf';
 
+import InkLayer from './InkLayer';
+import PresenterToolbar from './PresenterToolbar';
+
 /**
  * Space at the top of the stage taken by the meeting subject, as for the whiteboard.
  */
@@ -251,6 +254,7 @@ const Presentation = () => {
             onKeyDown = { onKeyDown }
             role = 'region'
             tabIndex = { isPresenter ? 0 : -1 }>
+            { isPresenter && <PresenterToolbar /> }
             {
                 !isPresenter && (
                     <div className = { classes.label }>
@@ -266,6 +270,13 @@ const Presentation = () => {
                     className = { classes.page }
                     style = {{ height: pageHeight, width: pageWidth }}>
                     <canvas ref = { canvasRef } />
+                    {
+                        pageHeight > 0 && (
+                            <InkLayer
+                                height = { pageHeight }
+                                width = { pageWidth } />
+                        )
+                    }
                 </div>
             </div>
         </div>

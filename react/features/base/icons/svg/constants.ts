@@ -36,6 +36,7 @@ import { default as IconEmotionsSurprised } from './emotions-surprised.svg';
 import { default as IconEnlarge } from './enlarge.svg';
 import { default as IconEnterFullscreen } from './enter-fullscreen.svg';
 import { default as IconEnvelope } from './envelope.svg';
+import { default as IconEraser } from './eraser.svg';
 import { default as IconExclamationSolid } from './exclamation-solid.svg';
 import { default as IconExclamationTriangle } from './exclamation-triangle.svg';
 import { default as IconExitFullscreen } from './exit-fullscreen.svg';
@@ -58,6 +59,7 @@ import { default as IconMessage } from './message.svg';
 import { default as IconMeter } from './meter.svg';
 import { default as IconMicSlash } from './mic-slash.svg';
 import { default as IconMic } from './mic.svg';
+import { default as IconMinus } from './minus.svg';
 import { default as IconModerator } from './moderator.svg';
 import { default as IconConnectionInactive } from './ninja.svg';
 import { default as IconNoiseSuppressionOff } from './noise-suppression-off.svg';
@@ -71,6 +73,7 @@ import { default as IconPinned } from './pinned.svg';
 import { default as IconPip } from './pip.svg';
 import { default as IconPlay } from './play.svg';
 import { default as IconPlus } from './plus.svg';
+import { default as IconPointer } from './pointer.svg';
 import { default as IconRaiseHand } from './raise-hand.svg';
 import { default as IconRecord } from './record.svg';
 import { default as IconReply } from './reply.svg';
@@ -148,6 +151,7 @@ export const DEFAULT_ICON: Record<string, any> = {
     IconEnlarge,
     IconEnterFullscreen,
     IconEnvelope,
+    IconEraser,
     IconEmotionsAngry,
     IconEmotionsDisgusted,
     IconEmotionsFearful,
@@ -173,6 +177,7 @@ export const DEFAULT_ICON: Record<string, any> = {
     IconMessage,
     IconMeter,
     IconMic,
+    IconMinus,
     IconMicSlash,
     IconModerator,
     IconNoiseSuppressionOff,
@@ -186,6 +191,7 @@ export const DEFAULT_ICON: Record<string, any> = {
     IconPip,
     IconPlay,
     IconPlus,
+    IconPointer,
     IconRaiseHand,
     IconRecord,
     IconTranscription,
