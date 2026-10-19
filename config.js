@@ -2125,6 +2125,13 @@ var config = {
     //     // Maximum file size limit (-1 value disables any file size limit check)
     //     maxFileSize: 50,
     // },
+
+    // Synced presentation of shared PDF, JPG and PNG files. Moderators can present a file from the
+    // file sharing panel; everyone follows the presenter's page, zoom and scroll. Requires file sharing.
+    // presentation: {
+    //     // Whether the feature is enabled or not.
+    //     enabled: true,
+    // },
 };
 
 // Set the default values for JaaS customers

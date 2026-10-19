@@ -65,6 +65,7 @@ import { IPollsState } from '../polls/reducer';
 import { IPollsHistoryState } from '../polls-history/reducer';
 import { IPowerMonitorState } from '../power-monitor/reducer';
 import { IPrejoinState } from '../prejoin/reducer';
+import { IPresentationState } from '../presentation/reducer';
 import { IReactionsState } from '../reactions/reducer';
 import { IRecentListState } from '../recent-list/reducer';
 import { IRecordingState } from '../recording/reducer';
@@ -158,6 +159,7 @@ export interface IReduxState {
     'features/polls-history': IPollsHistoryState;
     'features/power-monitor': IPowerMonitorState;
     'features/prejoin': IPrejoinState;
+    'features/presentation': IPresentationState;
     'features/reactions': IReactionsState;
     'features/recent-list': IRecentListState;
     'features/recording': IRecordingState;

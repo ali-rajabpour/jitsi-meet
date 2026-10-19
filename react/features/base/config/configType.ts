@@ -655,6 +655,9 @@ export interface IConfig {
         preCallTestICEUrl?: string;
         showHangUp?: boolean;
     };
+    presentation?: {
+        enabled?: boolean;
+    };
     raisedHands?: {
         disableLowerHandByModerator?: boolean;
         disableLowerHandNotification?: boolean;
