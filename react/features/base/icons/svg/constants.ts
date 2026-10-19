@@ -74,6 +74,7 @@ import { default as IconPip } from './pip.svg';
 import { default as IconPlay } from './play.svg';
 import { default as IconPlus } from './plus.svg';
 import { default as IconPointer } from './pointer.svg';
+import { default as IconPresentation } from './presentation.svg';
 import { default as IconRaiseHand } from './raise-hand.svg';
 import { default as IconRecord } from './record.svg';
 import { default as IconReply } from './reply.svg';
@@ -192,6 +193,7 @@ export const DEFAULT_ICON: Record<string, any> = {
     IconPlay,
     IconPlus,
     IconPointer,
+    IconPresentation,
     IconRaiseHand,
     IconRecord,
     IconTranscription,

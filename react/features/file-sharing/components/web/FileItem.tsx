@@ -4,7 +4,7 @@ import { makeStyles } from 'tss-react/mui';
 
 import Avatar from '../../../base/avatar/components/Avatar';
 import Icon from '../../../base/icons/components/Icon';
-import { IconDownload, IconShareDoc, IconTrash } from '../../../base/icons/svg';
+import { IconDownload, IconPresentation, IconTrash } from '../../../base/icons/svg';
 import BaseTheme from '../../../base/ui/components/BaseTheme.web';
 import {
     formatFileSize,
@@ -337,7 +337,7 @@ const FileItem = ({
                                                 <Icon
                                                     color = { BaseTheme.palette.fileSharingText }
                                                     size = { 24 }
-                                                    src = { IconShareDoc } />
+                                                    src = { IconPresentation } />
                                             </button>
                                         )
                                     }

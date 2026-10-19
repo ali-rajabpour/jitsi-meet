@@ -1,12 +1,16 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useDispatch, useSelector, useStore } from 'react-redux';
+import { shallowEqual, useDispatch, useSelector, useStore } from 'react-redux';
 import { makeStyles } from 'tss-react/mui';
 
+// @ts-expect-error
+import Filmstrip from '../../../../../modules/UI/videolayout/Filmstrip';
 import { IReduxState } from '../../../app/types';
 import { getParticipantDisplayName } from '../../../base/participants/functions';
 import { fetchPresignedUrl } from '../../../file-sharing/utils';
+import { getVerticalViewMaxWidth } from '../../../filmstrip/functions.web';
 import { showErrorNotification } from '../../../notifications/actions';
+import { getToolboxHeight } from '../../../toolbox/functions.web';
 import { shouldDisplayTileView } from '../../../video-layout/functions.any';
 import { setPresentationPageCount, setPresentationView, stopPresentation } from '../../actions';
 import { getPresentation, isLocalPresenter } from '../../functions';
@@ -23,7 +27,7 @@ import PresenterToolbar from './PresenterToolbar';
 const TOP_OFFSET = 80;
 
 /**
- * Horizontal padding around the page at fit-to-width zoom.
+ * Padding around the page at 100% zoom, where the whole page fits the stage.
  */
 const PAGE_PADDING = 16;
 
@@ -37,11 +41,9 @@ const useStyles = makeStyles()(theme => {
     return {
         container: {
             backgroundColor: theme.palette.ui01,
-            bottom: 0,
             left: 0,
             outline: 'none',
             position: 'absolute',
-            right: 0,
             top: TOP_OFFSET,
             zIndex: 1
         },
@@ -81,6 +83,30 @@ const useStyles = makeStyles()(theme => {
 });
 
 /**
+ * Returns the size of the stage next to the filmstrip, computed the same way as for the whiteboard, so the
+ * document takes the main area and the participants stay visible beside or below it.
+ *
+ * @param {IReduxState} state - The redux state.
+ * @returns {{ height: number, width: number }}
+ */
+function getStageSize(state: IReduxState) {
+    const { clientHeight, videoSpaceWidth } = state['features/base/responsive-ui'];
+    const { visible } = state['features/filmstrip'];
+
+    if (interfaceConfig.VERTICAL_FILMSTRIP) {
+        return {
+            height: clientHeight - getToolboxHeight() - TOP_OFFSET,
+            width: visible ? videoSpaceWidth - getVerticalViewMaxWidth(state) : videoSpaceWidth
+        };
+    }
+
+    return {
+        height: (visible ? clientHeight - Filmstrip.getFilmstripHeight() : clientHeight) - TOP_OFFSET,
+        width: videoSpaceWidth
+    };
+}
+
+/**
  * Returns the scroll position of an element as fractions of its scrollable range.
  *
  * @param {HTMLElement} el - The element.
@@ -109,6 +135,7 @@ const Presentation = () => {
     const info = useSelector(getPresentation);
     const isPresenter = useSelector(isLocalPresenter);
     const isInTileView = useSelector(shouldDisplayTileView);
+    const stageSize = useSelector(getStageSize, shallowEqual);
     const presenterName = useSelector((state: IReduxState) =>
         info ? getParticipantDisplayName(state, info.presenterId) : '');
     const scrollerRef = useRef<HTMLDivElement>(null);
@@ -128,7 +155,10 @@ const Presentation = () => {
 
     // The presenter zooms relative to fit-to-width. Viewers size the page so that the presenter's whole
     // visible region fits their screen, whatever its size and shape.
-    const pageWidth = viewerScroll?.pageWidth ?? Math.max(0, available.width - (2 * PAGE_PADDING)) * zoom;
+    const fitPageWidth = Math.max(0, pageAspect > 0
+        ? Math.min(available.width - (2 * PAGE_PADDING), (available.height - (2 * PAGE_PADDING)) / pageAspect)
+        : available.width - (2 * PAGE_PADDING));
+    const pageWidth = viewerScroll?.pageWidth ?? fitPageWidth * zoom;
     const pageHeight = pageWidth * pageAspect;
 
     // Load the document whenever the presented file changes. The bytes stay in memory and are never saved.
@@ -285,6 +315,7 @@ const Presentation = () => {
             className = { cx(classes.container, (isInTileView || loadFailed) && classes.hidden) }
             onKeyDown = { onKeyDown }
             role = 'region'
+            style = { stageSize }
             tabIndex = { isPresenter ? 0 : -1 }>
             { isPresenter && <PresenterToolbar /> }
             {
