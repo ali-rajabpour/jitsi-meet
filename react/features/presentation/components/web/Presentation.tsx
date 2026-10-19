@@ -22,11 +22,6 @@ import InkLayer from './InkLayer';
 import PresenterToolbar from './PresenterToolbar';
 
 /**
- * Space at the top of the stage taken by the meeting subject, as for the whiteboard.
- */
-const TOP_OFFSET = 80;
-
-/**
  * Duration of the enter, exit and resize animations, in milliseconds.
  */
 const TRANSITION_MS = 300;
@@ -44,18 +39,40 @@ const SCROLL_EPSILON = 0.01;
 
 const useStyles = makeStyles()(theme => {
     return {
+        // Covers the whole stage, including the camera video behind the filmstrip, so nothing shows
+        // around the document.
         container: {
-            backgroundColor: theme.palette.ui01,
+            backgroundColor: theme.palette.uiBackground,
+            bottom: 0,
             left: 0,
             outline: 'none',
             position: 'absolute',
-            top: TOP_OFFSET,
+            right: 0,
+            top: 0,
             opacity: 0,
             pointerEvents: 'none',
             transform: 'scale(0.98)',
-            transition: `opacity ${TRANSITION_MS}ms ease, transform ${TRANSITION_MS}ms ease, `
-                + `width ${TRANSITION_MS}ms ease, height ${TRANSITION_MS}ms ease`,
+            transition: `opacity ${TRANSITION_MS}ms ease, transform ${TRANSITION_MS}ms ease`,
             zIndex: 1
+        },
+
+        // The area next to the filmstrip: a header row, then the document.
+        stage: {
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: theme.spacing(2),
+            left: 0,
+            padding: theme.spacing(3, 3, 2),
+            position: 'absolute',
+            top: 0,
+            transition: `width ${TRANSITION_MS}ms ease, height ${TRANSITION_MS}ms ease`
+        },
+        header: {
+            display: 'flex',
+            flexShrink: 0,
+            justifyContent: 'center',
+            minHeight: 48
         },
         shown: {
             opacity: 1,
@@ -66,9 +83,9 @@ const useStyles = makeStyles()(theme => {
             display: 'none'
         },
         scroller: {
-            height: '100%',
-            overflow: 'auto',
-            width: '100%'
+            flex: 1,
+            minHeight: 0,
+            overflow: 'auto'
         },
         locked: {
             overflow: 'hidden',
@@ -84,15 +101,11 @@ const useStyles = makeStyles()(theme => {
         },
         label: {
             ...theme.typography.labelBold,
+            alignSelf: 'center',
             backgroundColor: theme.palette.ui02,
             borderRadius: theme.shape.borderRadius,
             color: theme.palette.text01,
-            left: theme.spacing(2),
-            padding: theme.spacing(1, 2),
-            pointerEvents: 'none',
-            position: 'absolute',
-            top: theme.spacing(2),
-            zIndex: 2
+            padding: theme.spacing(1, 2)
         }
     };
 });
@@ -110,13 +123,13 @@ function getStageSize(state: IReduxState) {
 
     if (interfaceConfig.VERTICAL_FILMSTRIP) {
         return {
-            height: clientHeight - getToolboxHeight() - TOP_OFFSET,
+            height: clientHeight - getToolboxHeight(),
             width: visible ? videoSpaceWidth - getVerticalViewMaxWidth(state) : videoSpaceWidth
         };
     }
 
     return {
-        height: (visible ? clientHeight - Filmstrip.getFilmstripHeight() : clientHeight) - TOP_OFFSET,
+        height: visible ? clientHeight - Filmstrip.getFilmstripHeight() : clientHeight,
         width: videoSpaceWidth
     };
 }
@@ -252,7 +265,7 @@ const Presentation = () => {
         observer.observe(el);
 
         return () => observer.disconnect();
-    }, []);
+    }, [ isRendered ]);
 
     useEffect(() => {
         let cancelled = false;
@@ -358,32 +371,41 @@ const Presentation = () => {
             className = { cx(classes.container, isShown && classes.shown, (isInTileView || loadFailed) && classes.hidden) }
             onKeyDown = { onKeyDown }
             role = 'region'
-            style = { stageSize }
             tabIndex = { isPresenter ? 0 : -1 }>
-            { isPresenter && <PresenterToolbar /> }
-            {
-                !isPresenter && (
-                    <div className = { classes.label }>
-                        { t('presentation.presentedBy', { name: presenterName, fileName: shownInfo.fileName }) }
-                    </div>
-                )
-            }
             <div
-                className = { cx(classes.scroller, !isPresenter && classes.locked) }
-                onScroll = { publishView }
-                ref = { scrollerRef }>
-                <div
-                    className = { classes.page }
-                    ref = { pageRef }
-                    style = {{ height: pageHeight, width: pageWidth }}>
-                    <canvas ref = { canvasRef } />
+                className = { classes.stage }
+                style = { stageSize }>
+                <div className = { classes.header }>
                     {
-                        pageHeight > 0 && (
-                            <InkLayer
-                                height = { pageHeight }
-                                width = { pageWidth } />
-                        )
+                        isPresenter
+                            ? <PresenterToolbar />
+                            : (
+                                <div className = { classes.label }>
+                                    { t('presentation.presentedBy', {
+                                        name: presenterName,
+                                        fileName: shownInfo.fileName
+                                    }) }
+                                </div>
+                            )
                     }
+                </div>
+                <div
+                    className = { cx(classes.scroller, !isPresenter && classes.locked) }
+                    onScroll = { publishView }
+                    ref = { scrollerRef }>
+                    <div
+                        className = { classes.page }
+                        ref = { pageRef }
+                        style = {{ height: pageHeight, width: pageWidth }}>
+                        <canvas ref = { canvasRef } />
+                        {
+                            pageHeight > 0 && (
+                                <InkLayer
+                                    height = { pageHeight }
+                                    width = { pageWidth } />
+                            )
+                        }
+                    </div>
                 </div>
             </div>
         </div>

@@ -39,13 +39,8 @@ const useStyles = makeStyles()(theme => {
             flexWrap: 'wrap',
             gap: theme.spacing(1),
             justifyContent: 'center',
-            left: '50%',
-            maxWidth: 'calc(100% - 32px)',
-            padding: theme.spacing(1),
-            position: 'absolute',
-            top: theme.spacing(2),
-            transform: 'translateX(-50%)',
-            zIndex: 3
+            maxWidth: '100%',
+            padding: theme.spacing(1)
         },
         group: {
             alignItems: 'center',
