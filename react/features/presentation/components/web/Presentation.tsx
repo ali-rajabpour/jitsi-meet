@@ -12,6 +12,7 @@ import { setPresentationPageCount, setPresentationView, stopPresentation } from 
 import { getPresentation, isLocalPresenter } from '../../functions';
 import logger from '../../logger';
 import { IPresentationDocument, loadDocument } from '../../pdf';
+import { viewerLayout, visibleRegion } from '../../protocol';
 
 import InkLayer from './InkLayer';
 import PresenterToolbar from './PresenterToolbar';
@@ -113,13 +114,20 @@ const Presentation = () => {
     const scrollerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [ doc, setDoc ] = useState<IPresentationDocument>();
-    const [ availableWidth, setAvailableWidth ] = useState(0);
+    const pageRef = useRef<HTMLDivElement>(null);
+    const [ available, setAvailable ] = useState({ height: 0, width: 0 });
     const [ pageAspect, setPageAspect ] = useState(0);
     const fileId = info?.fileId;
     const fileType = info?.fileType;
     const page = info?.page ?? 1;
     const zoom = info?.zoom ?? 1;
-    const pageWidth = Math.max(0, availableWidth - (2 * PAGE_PADDING)) * zoom;
+    const viewerScroll = !isPresenter && info && pageAspect > 0
+        ? viewerLayout(available.width, available.height, pageAspect, info.region, PAGE_PADDING)
+        : undefined;
+
+    // The presenter zooms relative to fit-to-width. Viewers size the page so that the presenter's whole
+    // visible region fits their screen, whatever its size and shape.
+    const pageWidth = viewerScroll?.pageWidth ?? Math.max(0, available.width - (2 * PAGE_PADDING)) * zoom;
     const pageHeight = pageWidth * pageAspect;
 
     // Load the document whenever the presented file changes. The bytes stay in memory and are never saved.
@@ -179,7 +187,7 @@ const Presentation = () => {
             return;
         }
 
-        const observer = new ResizeObserver(() => setAvailableWidth(el.clientWidth));
+        const observer = new ResizeObserver(() => setAvailable({ height: el.clientHeight, width: el.clientWidth }));
 
         observer.observe(el);
 
@@ -204,11 +212,21 @@ const Presentation = () => {
         }
     }, [ doc, page, pageWidth ]);
 
-    // Follow the presenter's scroll position. The presenter's own echo is ignored by the epsilon.
+    // Viewers scroll to centre the presenter's region.
     useEffect(() => {
         const el = scrollerRef.current;
 
-        if (!el || !info) {
+        if (el && viewerScroll) {
+            el.scrollLeft = viewerScroll.scrollLeft;
+            el.scrollTop = viewerScroll.scrollTop;
+        }
+    }, [ viewerScroll?.scrollLeft, viewerScroll?.scrollTop, pageWidth ]);
+
+    // The presenter's own scroll is reset on page changes; the echo of its own scrolling is ignored by the epsilon.
+    useEffect(() => {
+        const el = scrollerRef.current;
+
+        if (!el || !info || !isPresenter) {
             return;
         }
 
@@ -224,11 +242,20 @@ const Presentation = () => {
         }
     }, [ info?.scrollX, info?.scrollY, pageWidth, pageHeight ]);
 
-    const onScroll = useCallback(() => {
-        if (isPresenter && scrollerRef.current) {
-            dispatch(setPresentationView(getScrollFractions(scrollerRef.current)));
+    const publishView = useCallback(() => {
+        const scroller = scrollerRef.current;
+        const pageEl = pageRef.current;
+
+        if (isPresenter && scroller && pageEl && pageEl.clientWidth > 0 && pageEl.clientHeight > 0) {
+            dispatch(setPresentationView({
+                ...getScrollFractions(scroller),
+                region: visibleRegion(scroller.getBoundingClientRect(), pageEl.getBoundingClientRect())
+            }));
         }
     }, [ isPresenter ]);
+
+    // The visible region also changes when the page or the stage is resized.
+    useEffect(publishView, [ publishView, pageWidth, pageHeight, available.height ]);
 
     const onKeyDown = useCallback((event: React.KeyboardEvent) => {
         if (!isPresenter || !doc) {
@@ -264,10 +291,11 @@ const Presentation = () => {
             }
             <div
                 className = { cx(classes.scroller, !isPresenter && classes.locked) }
-                onScroll = { onScroll }
+                onScroll = { publishView }
                 ref = { scrollerRef }>
                 <div
                     className = { classes.page }
+                    ref = { pageRef }
                     style = {{ height: pageHeight, width: pageWidth }}>
                     <canvas ref = { canvasRef } />
                     {

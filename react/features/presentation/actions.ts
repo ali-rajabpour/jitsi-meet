@@ -11,7 +11,7 @@ import {
     STOP_PRESENTATION,
     UPSERT_PRESENTATION_STROKE
 } from './actionTypes';
-import { IPresentationInfo, IPresentationView, IStroke, PresentationTool } from './protocol';
+import { IPresentationInfo, IPresentationView, IRegion, IStroke, PresentationTool } from './protocol';
 
 /**
  * Starts presenting a shared file.
@@ -64,10 +64,10 @@ export function clearPresentation() {
 /**
  * Updates the presenter's view.
  *
- * @param {Partial<IPresentationView>} view - The changed view fields.
+ * @param {Object} view - The changed view fields, optionally with the presenter's visible region.
  * @returns {Object}
  */
-export function setPresentationView(view: Partial<IPresentationView>) {
+export function setPresentationView(view: Partial<IPresentationView> & { region?: IRegion; }) {
     return {
         type: SET_PRESENTATION_VIEW,
         view

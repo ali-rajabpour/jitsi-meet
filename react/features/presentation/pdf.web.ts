@@ -1,4 +1,6 @@
-import { PresentationFileType } from './protocol';
+import { getBaseUrl } from '../base/util/helpers';
+
+import { PresentationFileType, canvasRatio } from './protocol';
 
 /**
  * A loaded document, either a PDF or a single image.
@@ -21,24 +23,31 @@ export interface IPresentationDocument {
     pageCount: number;
 
     /**
-     * Renders a page into a canvas, sized to the given CSS width. A newer call on the same canvas cancels an
-     * unfinished older one; the older promise then resolves without drawing.
+     * Renders a page into a canvas, sized to the given CSS width. A newer call on the same canvas wins: an
+     * older call that has not finished yet resolves without drawing.
      */
     renderPage: (page: number, canvas: HTMLCanvasElement, cssWidth: number) => Promise<void>;
 }
 
+/**
+ * The largest canvas backing store, in pixels. Larger canvases are blanked by Safari (about 16.7M pixels) and
+ * use too much memory elsewhere, so the drawing resolution is lowered for high zoom levels instead.
+ */
+export const MAX_CANVAS_PIXELS = 16 * 1000 * 1000;
+
 let worker: Worker | undefined;
 
 /**
- * Sizes a canvas for crisp drawing on high density screens and returns its 2D context.
+ * Sizes a canvas for crisp drawing on high density screens, within the pixel budget, and returns its 2D
+ * context and the scale from CSS pixels to canvas pixels.
  *
  * @param {HTMLCanvasElement} canvas - The canvas.
  * @param {number} cssWidth - The CSS width.
  * @param {number} cssHeight - The CSS height.
  * @returns {Object}
  */
-function prepareCanvas(canvas: HTMLCanvasElement, cssWidth: number, cssHeight: number) {
-    const ratio = window.devicePixelRatio || 1;
+export function prepareCanvas(canvas: HTMLCanvasElement, cssWidth: number, cssHeight: number) {
+    const ratio = canvasRatio(window.devicePixelRatio || 1, cssWidth, cssHeight, MAX_CANVAS_PIXELS);
 
     canvas.width = Math.round(cssWidth * ratio);
     canvas.height = Math.round(cssHeight * ratio);
@@ -72,22 +81,32 @@ async function loadImage(bytes: ArrayBuffer): Promise<IPresentationDocument> {
 }
 
 /**
- * Loads a PDF with pdf.js, which is fetched as a separate chunk on first use.
+ * Loads a PDF with pdf.js, which is fetched as a separate chunk on first use. The character maps, standard
+ * fonts, colour profiles and image decoders (JPEG 2000 and JBIG2, common in scanned documents) are served
+ * from libs/pdfjs/ by the deployment.
  *
  * @param {ArrayBuffer} bytes - The PDF bytes.
  * @returns {Promise<IPresentationDocument>}
  */
 async function loadPdf(bytes: ArrayBuffer): Promise<IPresentationDocument> {
     const pdfjs = await import(/* webpackChunkName: "pdfjs" */ 'pdfjs-dist');
+    const resources = `${getBaseUrl()}libs/pdfjs/`;
 
     if (!worker) {
         worker = new Worker(new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url), { type: 'module' });
         pdfjs.GlobalWorkerOptions.workerPort = worker;
     }
 
-    const loadingTask = pdfjs.getDocument({ data: new Uint8Array(bytes) });
+    const loadingTask = pdfjs.getDocument({
+        cMapPacked: true,
+        cMapUrl: `${resources}cmaps/`,
+        data: new Uint8Array(bytes),
+        iccUrl: `${resources}iccs/`,
+        standardFontDataUrl: `${resources}standard_fonts/`,
+        wasmUrl: `${resources}wasm/`
+    });
     const pdf = await loadingTask.promise;
-    const renderTasks = new WeakMap<HTMLCanvasElement, { cancel: () => void; }>();
+    const renders = new WeakMap<HTMLCanvasElement, { cancel?: () => void; generation: number; }>();
 
     return {
         destroy: () => {
@@ -100,9 +119,18 @@ async function loadPdf(bytes: ArrayBuffer): Promise<IPresentationDocument> {
         },
         pageCount: pdf.numPages,
         renderPage: async (page, canvas, cssWidth) => {
-            renderTasks.get(canvas)?.cancel();
+            const generation = (renders.get(canvas)?.generation ?? 0) + 1;
+            const isCurrent = () => renders.get(canvas)?.generation === generation;
+
+            renders.get(canvas)?.cancel?.();
+            renders.set(canvas, { generation });
 
             const pdfPage = await pdf.getPage(page);
+
+            if (!isCurrent()) {
+                return;
+            }
+
             const scale = cssWidth / pdfPage.getViewport({ scale: 1 }).width;
             const viewport = pdfPage.getViewport({ scale });
 
@@ -117,7 +145,7 @@ async function loadPdf(bytes: ArrayBuffer): Promise<IPresentationDocument> {
                 viewport
             });
 
-            renderTasks.set(canvas, task);
+            renders.set(canvas, { cancel: () => task.cancel(), generation });
 
             try {
                 await task.promise;
@@ -126,6 +154,10 @@ async function loadPdf(bytes: ArrayBuffer): Promise<IPresentationDocument> {
                     return;
                 }
                 throw error;
+            }
+
+            if (!isCurrent()) {
+                return;
             }
 
             const { context: target } = prepareCanvas(canvas, viewport.width, viewport.height);

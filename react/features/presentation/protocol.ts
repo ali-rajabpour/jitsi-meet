@@ -73,9 +73,41 @@ export interface IPresentationInfo extends IPresentationView {
     presenterId: string;
 
     /**
+     * The part of the page the presenter currently sees. Viewers scale and scroll so that all of it is
+     * visible on their screen, whatever its size.
+     */
+    region: IRegion;
+
+    /**
      * When the presentation was started, used to order takeovers.
      */
     startedAt: number;
+}
+
+/**
+ * A rectangle on the page in page units (0-1 of the page width and height).
+ */
+export interface IRegion {
+
+    /**
+     * The height as a fraction of the page height.
+     */
+    h: number;
+
+    /**
+     * The width as a fraction of the page width.
+     */
+    w: number;
+
+    /**
+     * The left edge.
+     */
+    x: number;
+
+    /**
+     * The top edge.
+     */
+    y: number;
 }
 
 /**
@@ -111,7 +143,7 @@ export type PresentationMessage =
     | { kind: 'pointer'; page: number; x: number; y: number; }
     | { kind: 'stroke'; page: number; stroke: IStroke; }
     | { id: string; kind: 'erase'; page: number; }
-    | { kind: 'strokes'; page: number; strokes: IStroke[]; }
+    | { append?: boolean; kind: 'strokes'; page: number; strokes: IStroke[]; }
     | { kind: 'sync-request'; };
 
 /**
@@ -222,6 +254,10 @@ export function serializeStateAttributes(info: IPresentationInfo) {
             fileName: info.fileName,
             fileType: info.fileType,
             page: String(info.page),
+            rh: String(info.region.h),
+            rw: String(info.region.w),
+            rx: String(info.region.x),
+            ry: String(info.region.y),
             scrollX: String(info.scrollX),
             scrollY: String(info.scrollY),
             startedAt: String(info.startedAt),
@@ -263,6 +299,12 @@ export function parseStateAttributes(
         fileName: String(attributes.fileName ?? '').slice(0, 255),
         fileType,
         presenterId: from,
+        region: clampRegion({
+            h: Number(attributes.rh),
+            w: Number(attributes.rw),
+            x: Number(attributes.rx),
+            y: Number(attributes.ry)
+        }),
         startedAt
     };
 }
@@ -329,7 +371,13 @@ export function parseEndpointMessage(data: unknown): PresentationMessage | undef
         }
         const strokes = d.strokes.map(parseStroke);
 
-        return strokes.every(Boolean) ? { kind: 'strokes', page: d.page, strokes } : undefined;
+        if (!strokes.every(Boolean)) {
+            return undefined;
+        }
+
+        return d.append === true
+            ? { append: true, kind: 'strokes', page: d.page, strokes }
+            : { kind: 'strokes', page: d.page, strokes };
     }
     }
 
@@ -347,7 +395,126 @@ export function parseEndpointMessage(data: unknown): PresentationMessage | undef
 export function shouldAcceptState(
         current: { presenterId: string; startedAt: number; } | undefined,
         incoming: { presenterId: string; startedAt: number; }): boolean {
-    return !current || current.presenterId === incoming.presenterId || incoming.startedAt > current.startedAt;
+    return !current
+        || current.presenterId === incoming.presenterId
+        || incoming.startedAt > current.startedAt
+        || (incoming.startedAt === current.startedAt && incoming.presenterId > current.presenterId);
+}
+
+/**
+ * Splits strokes into groups of at most maxPoints coordinates each, keeping their order, so a full page of
+ * ink can be sent in messages of bounded size. A stroke larger than maxPoints gets a group of its own. There
+ * is always at least one group, so an empty page is still sent.
+ *
+ * @param {IStroke[]} strokes - The strokes.
+ * @param {number} maxPoints - The maximum number of coordinates per group.
+ * @returns {Array<Array<IStroke>>}
+ */
+export function chunkStrokes(strokes: IStroke[], maxPoints: number): IStroke[][] {
+    const chunks: IStroke[][] = [ [] ];
+    let count = 0;
+
+    for (const stroke of strokes) {
+        const current = chunks[chunks.length - 1];
+
+        if (current.length > 0 && count + stroke.points.length > maxPoints) {
+            chunks.push([ stroke ]);
+            count = stroke.points.length;
+        } else {
+            current.push(stroke);
+            count += stroke.points.length;
+        }
+    }
+
+    return chunks;
+}
+
+/**
+ * Returns the device pixel ratio to draw a canvas with, lowered when needed so the canvas stays below a
+ * pixel budget. Browsers refuse or blank canvases that are too large.
+ *
+ * @param {number} devicePixelRatio - The screen's device pixel ratio.
+ * @param {number} cssWidth - The CSS width.
+ * @param {number} cssHeight - The CSS height.
+ * @param {number} maxPixels - The pixel budget.
+ * @returns {number}
+ */
+export function canvasRatio(devicePixelRatio: number, cssWidth: number, cssHeight: number, maxPixels: number) {
+    const area = cssWidth * cssHeight;
+
+    return area > 0 ? Math.min(devicePixelRatio, Math.sqrt(maxPixels / area)) : devicePixelRatio;
+}
+
+/**
+ * Normalises a region so it is a valid rectangle within the page. Invalid input gives the whole page.
+ *
+ * @param {Partial<IRegion>} region - The region.
+ * @returns {IRegion}
+ */
+export function clampRegion(region?: Partial<IRegion>): IRegion {
+    const valid = (n: unknown) => typeof n === 'number' && Number.isFinite(n);
+
+    if (!region || ![ region.w, region.h ].every(valid)) {
+        return { x: 0, y: 0, w: 1, h: 1 };
+    }
+
+    const w = Math.min(1, Math.max(0.01, region.w!));
+    const h = Math.min(1, Math.max(0.01, region.h!));
+
+    return {
+        x: Math.min(1 - w, Math.max(0, valid(region.x) ? region.x! : 0)),
+        y: Math.min(1 - h, Math.max(0, valid(region.y) ? region.y! : 0)),
+        w,
+        h
+    };
+}
+
+/**
+ * Computes the part of a page box that lies inside a viewport, in page units.
+ *
+ * @param {Object} viewport - The viewport rectangle in client coordinates.
+ * @param {Object} page - The page rectangle in client coordinates.
+ * @returns {IRegion}
+ */
+export function visibleRegion(
+        viewport: { height: number; left: number; top: number; width: number; },
+        page: { height: number; left: number; top: number; width: number; }): IRegion {
+    const left = Math.max(viewport.left, page.left);
+    const top = Math.max(viewport.top, page.top);
+    const right = Math.min(viewport.left + viewport.width, page.left + page.width);
+    const bottom = Math.min(viewport.top + viewport.height, page.top + page.height);
+
+    return clampRegion({
+        x: (left - page.left) / page.width,
+        y: (top - page.top) / page.height,
+        w: (right - left) / page.width,
+        h: (bottom - top) / page.height
+    });
+}
+
+/**
+ * Computes how a viewer lays out the page so that the presenter's whole region is visible and centred.
+ * The page is horizontally centred when narrower than the viewport and has a top margin of padding.
+ *
+ * @param {number} availableWidth - The viewer's viewport width.
+ * @param {number} availableHeight - The viewer's viewport height.
+ * @param {number} aspect - The page height divided by its width.
+ * @param {IRegion} region - The presenter's visible region.
+ * @param {number} padding - The margin around the page.
+ * @returns {{ pageWidth: number, scrollLeft: number, scrollTop: number }}
+ */
+export function viewerLayout(availableWidth: number, availableHeight: number, aspect: number, region: IRegion,
+        padding: number) {
+    const pageWidth = Math.max(0, Math.min(
+        (availableWidth - (2 * padding)) / region.w,
+        (availableHeight - (2 * padding)) / (aspect * region.h)));
+    const marginLeft = Math.max(0, (availableWidth - pageWidth) / 2);
+
+    return {
+        pageWidth,
+        scrollLeft: Math.max(0, marginLeft + ((region.x + (region.w / 2)) * pageWidth) - (availableWidth / 2)),
+        scrollTop: Math.max(0, padding + ((region.y + (region.h / 2)) * pageWidth * aspect) - (availableHeight / 2))
+    };
 }
 
 /**

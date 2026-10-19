@@ -11,7 +11,8 @@ import {
 } from '../../actions';
 import { POINTER_IDLE_TIMEOUT } from '../../constants';
 import { isLocalPresenter } from '../../functions';
-import { IStroke, MAX_STROKE_POINTS, hitStroke, toPage } from '../../protocol';
+import { MAX_CANVAS_PIXELS } from '../../pdf';
+import { IStroke, MAX_STROKE_POINTS, canvasRatio, hitStroke, toPage } from '../../protocol';
 
 /**
  * Stroke widths as fractions of the page width, so ink looks the same at every viewer size.
@@ -112,7 +113,7 @@ const InkLayer = ({ height, width }: IProps) => {
             return;
         }
 
-        const ratio = window.devicePixelRatio || 1;
+        const ratio = canvasRatio(window.devicePixelRatio || 1, width, height, MAX_CANVAS_PIXELS);
 
         canvas.width = Math.round(width * ratio);
         canvas.height = Math.round(height * ratio);

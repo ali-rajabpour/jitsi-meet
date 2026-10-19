@@ -15,6 +15,11 @@ export const POINTER_SEND_INTERVAL = 100;
 export const STROKE_SEND_INTERVAL = 100;
 
 /**
+ * Minimum interval between ink replies to the same participant, in milliseconds.
+ */
+export const SYNC_REQUEST_INTERVAL = 2000;
+
+/**
  * Time after which an idle pointer is hidden, in milliseconds.
  */
 export const POINTER_IDLE_TIMEOUT = 2000;

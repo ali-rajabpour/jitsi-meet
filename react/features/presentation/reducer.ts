@@ -11,7 +11,14 @@ import {
     SET_PRESENTATION_VIEW,
     UPSERT_PRESENTATION_STROKE
 } from './actionTypes';
-import { ALLOWED_COLORS, IPresentationInfo, IStroke, PresentationTool, clampView } from './protocol';
+import {
+    ALLOWED_COLORS,
+    IPresentationInfo,
+    IStroke,
+    PresentationTool,
+    clampRegion,
+    clampView
+} from './protocol';
 
 export interface IPresentationState {
 
@@ -62,7 +69,8 @@ const DEFAULT_STATE: IPresentationState = {
 function withInfo(state: IPresentationState, info: IPresentationInfo): IPresentationState {
     const fileChanged = state.info?.fileId !== info.fileId;
 
-    if (fileChanged || state.info?.page !== info.page) {
+    // A new presenter starts with a clean page: the previous presenter's ink and pointer are not theirs.
+    if (fileChanged || state.info?.page !== info.page || state.info?.presenterId !== info.presenterId) {
         return {
             ...state,
             info,
@@ -88,7 +96,8 @@ ReducerRegistry.register<IPresentationState>('features/presentation',
         return state.info
             ? withInfo(state, {
                 ...state.info,
-                ...clampView({ ...state.info, ...action.view }, state.pageCount)
+                ...clampView({ ...state.info, ...action.view }, state.pageCount),
+                region: action.view.region ? clampRegion(action.view.region) : state.info.region
             })
             : state;
 

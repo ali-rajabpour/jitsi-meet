@@ -3,6 +3,7 @@ CLEANCSS = ./node_modules/.bin/cleancss
 DEPLOY_DIR = libs
 LIBJITSIMEET_DIR = node_modules/lib-jitsi-meet
 OLM_DIR = node_modules/@matrix-org/olm
+PDFJS_DIR = node_modules/pdfjs-dist
 TF_WASM_DIR = node_modules/@tensorflow/tfjs-backend-wasm/dist/
 RNNOISE_WASM_DIR = node_modules/@jitsi/rnnoise-wasm/dist
 EXCALIDRAW_DIR = node_modules/@jitsi/excalidraw/dist/prod
@@ -40,7 +41,7 @@ clean:
 	rm -fr $(BUILD_DIR)
 
 .NOTPARALLEL:
-deploy: deploy-init deploy-appbundle deploy-rnnoise-binary deploy-excalidraw deploy-tflite deploy-meet-models deploy-mediapipe-segmentation deploy-lib-jitsi-meet deploy-olm deploy-tf-wasm deploy-css deploy-local deploy-face-landmarks
+deploy: deploy-init deploy-appbundle deploy-rnnoise-binary deploy-excalidraw deploy-tflite deploy-meet-models deploy-mediapipe-segmentation deploy-lib-jitsi-meet deploy-olm deploy-pdfjs deploy-tf-wasm deploy-css deploy-local deploy-face-landmarks
 
 deploy-init:
 	rm -fr $(DEPLOY_DIR)
@@ -82,6 +83,12 @@ deploy-olm:
 	cp \
 		$(OLM_DIR)/olm.wasm \
 		$(DEPLOY_DIR)
+
+deploy-pdfjs:
+	mkdir -p $(DEPLOY_DIR)/pdfjs/wasm
+	cp -R $(PDFJS_DIR)/cmaps $(PDFJS_DIR)/iccs $(PDFJS_DIR)/standard_fonts $(DEPLOY_DIR)/pdfjs/
+	cp $(PDFJS_DIR)/wasm/jbig2.wasm $(PDFJS_DIR)/wasm/openjpeg.wasm $(PDFJS_DIR)/wasm/qcms_bg.wasm \
+		$(DEPLOY_DIR)/pdfjs/wasm/
 
 deploy-tf-wasm:
 	cp \
@@ -139,7 +146,7 @@ deploy-local:
 	([ ! -x deploy-local.sh ] || ./deploy-local.sh)
 
 .NOTPARALLEL:
-dev: deploy-init deploy-css deploy-rnnoise-binary deploy-tflite deploy-meet-models deploy-mediapipe-segmentation deploy-lib-jitsi-meet deploy-olm deploy-tf-wasm deploy-excalidraw-dev deploy-face-landmarks
+dev: deploy-init deploy-css deploy-rnnoise-binary deploy-tflite deploy-meet-models deploy-mediapipe-segmentation deploy-lib-jitsi-meet deploy-olm deploy-pdfjs deploy-tf-wasm deploy-excalidraw-dev deploy-face-landmarks
 	$(WEBPACK_DEV_SERVER)
 
 source-package: compile deploy

@@ -43,7 +43,12 @@ import {
     setPresentationStrokes,
     upsertPresentationStroke
 } from './actions';
-import { POINTER_SEND_INTERVAL, STROKE_SEND_INTERVAL, VIEW_SEND_INTERVAL } from './constants';
+import {
+    POINTER_SEND_INTERVAL,
+    STROKE_SEND_INTERVAL,
+    SYNC_REQUEST_INTERVAL,
+    VIEW_SEND_INTERVAL
+} from './constants';
 import { canPresentFile, getPresentation, isLocalPresenter, isPresentationEnabled } from './functions';
 import logger from './logger';
 import {
@@ -51,6 +56,8 @@ import {
     MAX_STROKE_POINTS,
     PRESENTATION_NAME,
     PresentationMessage,
+    chunkStrokes,
+    clampRegion,
     clampView,
     parseEndpointMessage,
     parseStateAttributes,
@@ -68,6 +75,11 @@ const pending = new Map<string, IPresentationInfo>();
  * Ids of strokes with points not sent yet, and how many points of each stroke were already sent.
  */
 const dirtyStrokes = new Set<string>();
+
+/**
+ * When each participant last asked for the current ink, to bound how often the presenter replies.
+ */
+const syncRequests = new Map<string, number>();
 const sentPoints = new Map<string, number>();
 
 /**
@@ -163,6 +175,7 @@ function resetOutgoing() {
     flushStrokesThrottled.cancel();
     dirtyStrokes.clear();
     sentPoints.clear();
+    syncRequests.clear();
 }
 
 /**
@@ -183,14 +196,24 @@ function clear({ dispatch }: IStore) {
  * @returns {void}
  */
 function stopLocal(store: IStore) {
-    const conference = getCurrentConference(store.getState());
+    withdrawState(getCurrentConference(store.getState()));
+    clear(store);
+}
 
+/**
+ * Removes the presentation from the local presence. Removing the extension alone does not send presence, so
+ * the server would keep the stale state and hand it to later joiners; the stop command forces an update.
+ * Participants following another presenter ignore it.
+ *
+ * @param {IJitsiConference} conference - The conference.
+ * @returns {void}
+ */
+function withdrawState(conference?: IJitsiConference) {
     conference?.removeCommand(PRESENTATION_NAME);
     conference?.sendCommandOnce(PRESENTATION_NAME, {
         value: '',
         attributes: { state: 'stop' }
     });
-    clear(store);
 }
 
 /**
@@ -219,7 +242,7 @@ function applyRemoteState(store: IStore, info: IPresentationInfo) {
 
     if (current?.presenterId === localId) {
         // Another moderator took over: stop holding the presentation in our presence.
-        getCurrentConference(state)?.removeCommand(PRESENTATION_NAME);
+        withdrawState(getCurrentConference(state));
         resetOutgoing();
         dispatch(showNotification({
             titleKey: 'presentation.takenOver',
@@ -259,8 +282,20 @@ function onMessage(store: IStore, fromId: string, message: PresentationMessage) 
     }
 
     if (message.kind === 'sync-request') {
-        if (isLocalPresenter(state)) {
-            send(getCurrentConference(state), { kind: 'strokes', page: info.page, strokes }, fromId);
+        const now = Date.now();
+
+        if (isLocalPresenter(state) && getParticipantById(state, fromId)
+                && now - (syncRequests.get(fromId) ?? 0) >= SYNC_REQUEST_INTERVAL) {
+            const conference = getCurrentConference(state);
+
+            syncRequests.set(fromId, now);
+            chunkStrokes(strokes, MAX_STROKE_POINTS).forEach((chunk, index) =>
+                send(conference, {
+                    append: index > 0,
+                    kind: 'strokes',
+                    page: info.page,
+                    strokes: chunk
+                }, fromId));
         }
 
         return;
@@ -290,7 +325,7 @@ function onMessage(store: IStore, fromId: string, message: PresentationMessage) 
         dispatch(removePresentationStroke(message.id, true));
         break;
     case 'strokes':
-        dispatch(setPresentationStrokes(message.strokes, true));
+        dispatch(setPresentationStrokes(message.append ? strokes.concat(message.strokes) : message.strokes, true));
         break;
     }
 }
@@ -368,6 +403,8 @@ MiddlewareRegistry.register(store => next => action => {
             return next(action);
         }
 
+        const current = getPresentation(state);
+
         resetOutgoing();
         dispatch(setPresentation({
             ...clampView({}),
@@ -375,7 +412,10 @@ MiddlewareRegistry.register(store => next => action => {
             fileName: file.fileName,
             fileType: fileType as IPresentationInfo['fileType'],
             presenterId: localId,
-            startedAt: Date.now()
+            region: clampRegion(),
+
+            // Clocks differ between machines, so a takeover is always ordered after what it replaces.
+            startedAt: Math.max(Date.now(), (current?.startedAt ?? 0) + 1)
         }));
         dispatch(setTileView(false));
         publishState(store);
