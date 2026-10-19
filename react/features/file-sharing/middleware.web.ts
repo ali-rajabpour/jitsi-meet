@@ -25,7 +25,7 @@ import { addFile, removeFile, updateFileProgress } from './actions';
 import { getFileExtension } from './functions.any';
 import logger from './logger';
 import { IFileMetadata } from './types';
-import { downloadFile } from './utils';
+import { downloadFile, fetchPresignedUrl } from './utils';
 
 
 /**
@@ -218,26 +218,8 @@ MiddlewareRegistry.register(store => next => action => {
     }
 
     case DOWNLOAD_FILE: {
-        const state = store.getState();
-        const { fileSharing } = state['features/base/config'];
-        const conference = getCurrentConference(state);
-        const sessionId = conference?.getMeetingUniqueId();
-
-        conference?.getShortTermCredentials(conference?.getFileSharing()?.getIdentityType())
-        .then((token: string) => fetch(`${fileSharing!.apiUrl!}/sessions/${sessionId}/files/${action.fileId}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        }))
-        .then((response: any) => response.json())
-        .then((data: { fileName: string; presignedUrl: string; }) => {
-            const { presignedUrl, fileName } = data;
-
-            if (!presignedUrl) {
-                throw new Error('No presigned URL found in the response.');
-            }
-
+        fetchPresignedUrl(store.getState(), action.fileId)
+        .then(({ presignedUrl, fileName }) => {
             store.dispatch(showNotification({
                 titleKey: 'fileSharing.downloadStarted'
             }, NOTIFICATION_TIMEOUT_TYPE.SHORT));
