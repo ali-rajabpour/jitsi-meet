@@ -8,6 +8,7 @@ import {
 } from '../base/icons/svg';
 import { MEET_FEATURES } from '../base/jwt/constants';
 import { isJwtFeatureEnabled } from '../base/jwt/functions';
+import { getLocalParticipant, isLocalParticipantModerator } from '../base/participants/functions';
 import { isInBreakoutRoom } from '../breakout-rooms/functions';
 import { showErrorNotification } from '../notifications/actions';
 import { NOTIFICATION_TIMEOUT_TYPE, NOTIFICATION_TYPE } from '../notifications/constants';
@@ -15,6 +16,7 @@ import { iAmVisitor } from '../visitors/functions';
 
 import { uploadFiles } from './actions';
 import { MAX_FILE_SIZE } from './constants';
+import { IFileMetadata } from './types';
 
 /**
  * Checks whether file sharing feature is enabled.
@@ -155,4 +157,17 @@ export function isFileUploadingEnabled(state: IReduxState): boolean {
     return !iAmVisitor(state)
         && isJwtFeatureEnabled(state, MEET_FEATURES.FILE_UPLOAD, false)
         && isFileSharingEnabled(state);
+}
+
+/**
+ * Checks whether the local participant may remove the given file: moderators may remove any file, other
+ * participants who can upload only their own.
+ *
+ * @param {IReduxState} state - Current state.
+ * @param {IFileMetadata} file - The shared file.
+ * @returns {boolean}
+ */
+export function canRemoveFile(state: IReduxState, file: IFileMetadata): boolean {
+    return isFileUploadingEnabled(state)
+        && (isLocalParticipantModerator(state) || file.authorParticipantId === getLocalParticipant(state)?.id);
 }

@@ -3,9 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from 'react-redux';
 import { makeStyles } from 'tss-react/mui';
 
+import { IReduxState } from '../../../app/types';
 import { downloadFile, removeFile } from '../../../file-sharing/actions';
 import FileItem from '../../../file-sharing/components/web/FileItem';
-import { isFileUploadingEnabled } from '../../../file-sharing/functions.any';
+import { canRemoveFile } from '../../../file-sharing/functions.any';
 import { IMessage } from '../../types';
 
 /**
@@ -82,7 +83,7 @@ const FileMessage = ({ className = '', message, screenReaderHelpText }: IFileMes
     const { classes, cx } = useStyles();
     const dispatch = useDispatch();
     const { t } = useTranslation();
-    const isUploadEnabled = useSelector(isFileUploadingEnabled);
+    const isRemoveEnabled = useSelector((state: IReduxState) => Boolean(message.fileMetadata && canRemoveFile(state, message.fileMetadata)));
 
     /**
      * Handles the download action for a file.
@@ -134,7 +135,7 @@ const FileMessage = ({ className = '', message, screenReaderHelpText }: IFileMes
                 onDownload = { handleDownload }
                 onRemove = { handleRemove }
                 showAuthor = { false }
-                showRemoveButton = { isUploadEnabled }
+                showRemoveButton = { isRemoveEnabled }
                 showTimestamp = { false } />
         </div>
     );

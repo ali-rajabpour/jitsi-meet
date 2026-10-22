@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { makeStyles } from 'tss-react/mui';
 
@@ -73,13 +73,10 @@ const useStyles = makeStyles()(theme => {
     return {
         buttonContainer: {
             alignItems: 'center',
-            bottom: 0,
             display: 'flex',
+            flexShrink: 0,
             justifyContent: 'end',
-            gap: theme.spacing(2),
-            position: 'absolute',
-            right: theme.spacing(3),
-            top: 0
+            gap: theme.spacing(2)
         },
 
         fileIconContainer: {
@@ -101,33 +98,8 @@ const useStyles = makeStyles()(theme => {
             padding: theme.spacing(3),
             position: 'relative',
 
-            '& .actionIconVisibility': {
-                opacity: 0,
-                transition: 'opacity 0.2s'
-            },
-
-            '& .timestampVisibility': {
-                opacity: 1
-            },
-
             '&:hover': {
-                backgroundColor: theme.palette.fileSharingItemBorder,
-
-                '& .actionIconVisibility': {
-                    opacity: 1
-                },
-
-                '& .timestampVisibility': {
-                    opacity: 0
-                }
-            },
-
-            '&.focused .actionIconVisibility': {
-                opacity: 1
-            },
-
-            '&.focused .timestampVisibility': {
-                opacity: 0
+                backgroundColor: theme.palette.fileSharingItemBorder
             }
         },
 
@@ -225,7 +197,6 @@ const FileItem = ({
     showTimestamp = true
 }: IFileItemProps) => {
     const { classes, cx } = useStyles();
-    const [ isFocused, setIsFocused ] = useState(false);
     const { t } = useTranslation();
     const isUploading = (file.progress ?? 100) < 100;
 
@@ -256,33 +227,10 @@ const FileItem = ({
         onRemove?.(file.fileId);
     }, [ onRemove, file.fileId ]);
 
-    /**
-     * Handles blur event to remove focus state.
-     *
-     * @param {React.FocusEvent} e - The blur event.
-     * @returns {void}
-     */
-    const handleBlur = useCallback((e: React.FocusEvent) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-            setIsFocused(false);
-        }
-    }, []);
-
-    /**
-     * Handles focus event to set focus state.
-     *
-     * @returns {void}
-     */
-    const handleFocus = useCallback(() => {
-        setIsFocused(true);
-    }, []);
-
     return (
         <div
-            className = { cx(classes.fileItem, isFocused && 'focused', className) }
+            className = { cx(classes.fileItem, className) }
             key = { file.fileId }
-            onBlur = { handleBlur }
-            onFocus = { handleFocus }
             tabIndex = { -1 }
             title = { file.fileName }>
             {
@@ -316,8 +264,8 @@ const FileItem = ({
                             }
                         </div>
                         {
-                            showTimestamp && (
-                                <div className = { `${classes.fileTimestamp} timestampVisibility` }>
+                            showTimestamp && !actionsVisible && (
+                                <div className = { classes.fileTimestamp }>
                                     <pre>
                                         { formatTimestamp(file.timestamp) }
                                     </pre>
@@ -326,7 +274,7 @@ const FileItem = ({
                         }
                         {
                             actionsVisible && (
-                                <div className = { `${classes.buttonContainer} actionIconVisibility` }>
+                                <div className = { classes.buttonContainer }>
                                     {
                                         onPresent && (
                                             <button

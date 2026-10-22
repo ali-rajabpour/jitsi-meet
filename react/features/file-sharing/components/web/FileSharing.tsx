@@ -6,6 +6,7 @@ import { makeStyles } from 'tss-react/mui';
 import { IReduxState } from '../../../app/types';
 import Icon from '../../../base/icons/components/Icon';
 import { IconCloudUpload } from '../../../base/icons/svg';
+import { getLocalParticipant, isLocalParticipantModerator } from '../../../base/participants/functions';
 import Tooltip from '../../../base/tooltip/components/Tooltip';
 import BaseTheme from '../../../base/ui/components/BaseTheme.web';
 import Button from '../../../base/ui/components/web/Button';
@@ -122,6 +123,8 @@ const FileSharing = () => {
     const sortedFiles = Array.from(files.values()).sort((a, b) => a.fileName.localeCompare(b.fileName));
     const isUploadEnabled = useSelector(isFileUploadingEnabled);
     const isPresentEnabled = useSelector(canPresent);
+    const isModerator = useSelector(isLocalParticipantModerator);
+    const localParticipantId = useSelector((state: IReduxState) => getLocalParticipant(state)?.id);
 
     const handlePresent = useCallback((fileId: string) => {
         dispatch(startPresentation(fileId));
@@ -231,7 +234,10 @@ const FileSharing = () => {
                                             isPresentEnabled && isPresentableFile(file) ? handlePresent : undefined
                                         }
                                         onRemove = { fileId => dispatch(removeFile(fileId)) }
-                                        showRemoveButton = { isUploadEnabled } />
+                                        showRemoveButton = {
+                                            isUploadEnabled
+                                            && (isModerator || file.authorParticipantId === localParticipantId)
+                                        } />
                                 </li>
                             ))
                         }
