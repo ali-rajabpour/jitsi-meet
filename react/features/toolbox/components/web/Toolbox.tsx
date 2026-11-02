@@ -114,7 +114,10 @@ export default function Toolbox({
     const reducedUI = useSelector((state: IReduxState) => state['features/base/responsive-ui'].reducedUI);
     const allButtons = useToolboxButtons(customToolbarButtons);
     const isMobile = isMobileBrowser();
-    const endConferenceSupported = Boolean(conference?.isEndConferenceSupported() && isModerator);
+    // Salam: only the clinic admin's token ("jbh-admin") may end the meeting for
+    // everyone; doctors are moderators too but only leave. Prosody enforces it.
+    const endConferenceSupported = Boolean(conference?.isEndConferenceSupported() && isModerator
+        && String(localParticipant?.features?.['jbh-admin']) === 'true');
 
     useKeyboardShortcuts(toolbarButtonsToUse);
 
