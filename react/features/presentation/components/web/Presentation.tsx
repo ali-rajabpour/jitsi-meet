@@ -13,6 +13,7 @@ import { showErrorNotification } from '../../../notifications/actions';
 import { getToolboxHeight } from '../../../toolbox/functions.web';
 import { shouldDisplayTileView } from '../../../video-layout/functions.any';
 import { setPresentationPageCount, setPresentationView, stopPresentation } from '../../actions';
+import { LOCAL_DOCUMENT_ID } from '../../constants';
 import { getPresentation, isLocalPresenter } from '../../functions';
 import logger from '../../logger';
 import { IPresentationDocument, loadDocument } from '../../pdf';
@@ -174,8 +175,10 @@ const Presentation = () => {
     const isPresenter = useSelector(isLocalPresenter);
     const isInTileView = useSelector(shouldDisplayTileView);
     const stageSize = useSelector(getStageSize, shallowEqual);
+    // A local document (shown through the iframe API) has no presenter and is labelled by its name alone.
     const presenterName = useSelector((state: IReduxState) =>
-        info ? getParticipantDisplayName(state, info.presenterId) : '');
+        info?.presenterId ? getParticipantDisplayName(state, info.presenterId) : '');
+    const localUrl = useSelector((state: IReduxState) => state['features/presentation'].localUrl);
     const scrollerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [ doc, setDoc ] = useState<IPresentationDocument>();
@@ -216,8 +219,10 @@ const Presentation = () => {
         setPageAspect(0);
         setLoadFailed(false);
 
-        fetchPresignedUrl(store.getState(), fileId)
-            .then(({ presignedUrl }) => fetch(presignedUrl))
+        (fileId === LOCAL_DOCUMENT_ID
+            ? Promise.resolve(localUrl ?? '')
+            : fetchPresignedUrl(store.getState(), fileId).then(({ presignedUrl }) => presignedUrl))
+            .then(url => fetch(url))
             .then(response => {
                 if (!response.ok) {
                     throw new Error(`Failed to fetch the presented file: ${response.statusText}`);
@@ -254,7 +259,7 @@ const Presentation = () => {
             cancelled = true;
             loaded?.destroy();
         };
-    }, [ fileId, fileType, meetingId ]);
+    }, [ fileId, fileType, meetingId, localUrl ]);
 
     // Track the space available for the page.
     useEffect(() => {
@@ -371,7 +376,9 @@ const Presentation = () => {
 
     return (
         <div
-            aria-label = { t('presentation.presentedBy', { name: presenterName, fileName: shownInfo.fileName }) }
+            aria-label = { (presenterName
+                ? t('presentation.presentedBy', { name: presenterName, fileName: shownInfo.fileName })
+                : shownInfo.fileName) }
             className = { cx(classes.container, isShown && classes.shown, (isInTileView || loadFailed) && classes.hidden) }
             onKeyDown = { onKeyDown }
             role = 'region'
@@ -385,10 +392,12 @@ const Presentation = () => {
                             ? <PresenterToolbar />
                             : (
                                 <div className = { classes.label }>
-                                    { t('presentation.presentedBy', {
-                                        name: presenterName,
-                                        fileName: shownInfo.fileName
-                                    }) }
+                                    { presenterName
+                                        ? t('presentation.presentedBy', {
+                                            name: presenterName,
+                                            fileName: shownInfo.fileName
+                                        })
+                                        : shownInfo.fileName }
                                 </div>
                             )
                     }

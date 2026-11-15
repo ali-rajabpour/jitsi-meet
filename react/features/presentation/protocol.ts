@@ -226,6 +226,26 @@ export function isPresentableType(fileType?: string): fileType is PresentationFi
 }
 
 /**
+ * The presentation type of a data URL given to show-local-document, or undefined when it is not a base64 data
+ * URL of a PDF, JPEG, PNG or WebP. Only data URLs are accepted, so the embedding page can never make Jitsi
+ * fetch an address.
+ *
+ * @param {unknown} url - The URL.
+ * @returns {PresentationFileType|undefined}
+ */
+export function localDocumentType(url: unknown): PresentationFileType | undefined {
+    const mime = typeof url === 'string' ? (/^data:([a-z/]+);base64,/.exec(url) || [])[1] : undefined;
+
+    // The image loader reads the bytes, so a WebP image only needs to be marked as an image.
+    return ({
+        'application/pdf': 'pdf',
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'image/webp': 'png'
+    } as Record<string, PresentationFileType>)[mime ?? ''];
+}
+
+/**
  * Normalises a view, filling defaults and clamping every field into its range.
  *
  * @param {Partial<IPresentationView>} view - The view to normalise.

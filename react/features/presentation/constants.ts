@@ -1,4 +1,10 @@
 /**
+ * File id of a document shown only on this screen through the iframe API (show-local-document). It has no
+ * presenter, so it is never sent to other participants.
+ */
+export const LOCAL_DOCUMENT_ID = 'local';
+
+/**
  * Minimum interval between presence updates of the presenter's view, in milliseconds.
  */
 export const VIEW_SEND_INTERVAL = 150;

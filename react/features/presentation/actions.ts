@@ -41,12 +41,14 @@ export function stopPresentation() {
  * Sets the active presentation.
  *
  * @param {IPresentationInfo} info - The presentation info.
+ * @param {string} localUrl - The data URL of a local document (see LOCAL_DOCUMENT_ID).
  * @returns {Object}
  */
-export function setPresentation(info: IPresentationInfo) {
+export function setPresentation(info: IPresentationInfo, localUrl?: string) {
     return {
         type: SET_PRESENTATION,
-        info
+        info,
+        localUrl
     };
 }
 

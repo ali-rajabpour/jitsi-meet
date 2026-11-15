@@ -33,6 +33,11 @@ export interface IPresentationState {
     info?: IPresentationInfo;
 
     /**
+     * The data URL of a local document (see LOCAL_DOCUMENT_ID), never sent to anyone.
+     */
+    localUrl?: string;
+
+    /**
      * The page count of the loaded document.
      */
     pageCount?: number;
@@ -90,7 +95,10 @@ ReducerRegistry.register<IPresentationState>('features/presentation',
 (state = DEFAULT_STATE, action): IPresentationState => {
     switch (action.type) {
     case SET_PRESENTATION:
-        return withInfo(state, action.info);
+        return {
+            ...withInfo(state, action.info),
+            localUrl: action.localUrl
+        };
 
     case SET_PRESENTATION_VIEW:
         return state.info

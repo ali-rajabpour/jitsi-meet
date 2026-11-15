@@ -118,6 +118,10 @@ import {
     hidePiP,
     showPiP
 } from '../../react/features/pip/actions';
+import { clearPresentation, setPresentation } from '../../react/features/presentation/actions';
+import { LOCAL_DOCUMENT_ID } from '../../react/features/presentation/constants';
+import { getPresentation, isPresentationEnabled } from '../../react/features/presentation/functions';
+import { clampRegion, clampView, localDocumentType } from '../../react/features/presentation/protocol';
 import {
     setStartRecordingIntent,
     setStopRecordingIntent,
@@ -647,6 +651,31 @@ function initCommands() {
         'set-low-bandwidth-mode': enable => {
             sendAnalytics(createApiEvent('set.low.bandwidth.mode'));
             APP.store.dispatch(setLowBandwidthMode(enable));
+        },
+
+        // Shows a document on this participant's stage only, like a presented file without a presenter.
+        // Ignored while a real presentation runs, which also replaces it when one starts.
+        'show-local-document': ({ title, url } = {}) => {
+            const state = APP.store.getState();
+            const fileType = localDocumentType(url);
+
+            if (!fileType || typeof title !== 'string' || !isPresentationEnabled(state) || getPresentation(state)) {
+                return;
+            }
+            APP.store.dispatch(setPresentation({
+                ...clampView({}),
+                fileId: LOCAL_DOCUMENT_ID,
+                fileName: title.slice(0, 200),
+                fileType,
+                presenterId: '',
+                region: clampRegion(),
+                startedAt: 0
+            }, url));
+        },
+        'hide-local-document': () => {
+            if (getPresentation(APP.store.getState())?.fileId === LOCAL_DOCUMENT_ID) {
+                APP.store.dispatch(clearPresentation());
+            }
         },
         'start-share-video': url => {
             sendAnalytics(createApiEvent('share.video.start'));
