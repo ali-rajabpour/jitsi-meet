@@ -65,6 +65,10 @@ const useStyles = makeStyles()(theme => {
             gap: theme.spacing(2),
             left: 0,
             padding: theme.spacing(3, 3, 2),
+
+            // Starts below the conference name and timer (.details-container, 48px tall), which sit on top
+            // of the stage; the label and the presenter tools would otherwise cover them.
+            paddingTop: 56,
             position: 'absolute',
             top: 0,
             transition: `width ${TRANSITION_MS}ms ease, height ${TRANSITION_MS}ms ease`
