@@ -671,6 +671,9 @@ function initCommands() {
                 region: clampRegion(),
                 startedAt: 0
             }, url));
+
+            // The stage is hidden in tile view, which turns on by itself with three or more people.
+            APP.store.dispatch(setTileView(false));
         },
         'hide-local-document': () => {
             if (getPresentation(APP.store.getState())?.fileId === LOCAL_DOCUMENT_ID) {
