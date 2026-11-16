@@ -4,6 +4,7 @@ import { DEFAULT_ICON } from './constants';
 
 const {
     IconAddUser,
+    IconAdmin,
     IconAI,
     IconArrowBack,
     IconArrowDown,
@@ -64,6 +65,7 @@ const {
     IconMinus,
     IconMicSlash,
     IconModerator,
+    IconDoctor,
     IconNoiseSuppressionOff,
     IconNoiseSuppressionOn,
     IconArrowRight,
@@ -132,6 +134,7 @@ const {
 
 export {
     IconAddUser,
+    IconAdmin,
     IconAI,
     IconArrowBack,
     IconArrowDown,
@@ -192,6 +195,7 @@ export {
     IconMinus,
     IconMicSlash,
     IconModerator,
+    IconDoctor,
     IconNoiseSuppressionOff,
     IconNoiseSuppressionOn,
     IconArrowRight,

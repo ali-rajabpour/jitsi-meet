@@ -60,6 +60,11 @@ interface IProps extends WithTranslation {
     local?: boolean;
 
     /**
+     * The moderator label from config.moderatorBadge, shown instead of "Moderator".
+     */
+    moderatorLabel?: string;
+
+    /**
      * Callback for when the mouse leaves this component.
      */
     onLeave?: (e?: React.MouseEvent) => void;
@@ -134,6 +139,7 @@ function ParticipantItem({
     displayName,
     isHighlighted,
     isModerator,
+    moderatorLabel,
     local,
     onLeave,
     openDrawerForParticipant,
@@ -169,7 +175,7 @@ function ParticipantItem({
                 {local ? <span>&nbsp;({youText})</span> : null}
             </div>
             {isModerator && !disableModeratorIndicator && <div className = { classes.moderatorLabel }>
-                {t('videothumbnail.moderator')}
+                {moderatorLabel ?? t('videothumbnail.moderator')}
             </div>}
         </>
     );

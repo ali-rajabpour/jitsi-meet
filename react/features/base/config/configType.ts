@@ -578,6 +578,11 @@ export interface IConfig {
     maxFullResolutionParticipants?: number;
     microsoftApiApplicationClientID?: string;
     moderatedRoomServiceUrl?: string;
+    moderatorBadge?: {
+        adminLabel?: string;
+        adminName?: string;
+        label?: string;
+    };
     mouseMoveCallbackInterval?: number;
     noiseSuppression?: INoiseSuppressionConfig;
     noticeMessage?: string;

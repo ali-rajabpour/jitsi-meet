@@ -6,6 +6,7 @@ import { JitsiTrackEvents } from '../../../base/lib-jitsi-meet';
 import { MEDIA_TYPE } from '../../../base/media/constants';
 import {
     getLocalParticipant,
+    getModeratorBadge,
     getParticipantByIdOrUndefined,
     getParticipantDisplayName,
     hasRaisedHand,
@@ -77,6 +78,11 @@ interface IProps {
      * Whether or not the participant name matches the search string.
      */
     _matchesSearch: boolean;
+
+    /**
+     * The moderator label from config.moderatorBadge, if set.
+     */
+    _moderatorLabel?: string;
 
     /**
      * The participant.
@@ -173,6 +179,7 @@ function MeetingParticipantItem({
     _audioTrack,
     _disableModeratorIndicator,
     _displayName,
+    _moderatorLabel,
     _local,
     _localVideoOwner,
     _matchesSearch,
@@ -241,6 +248,7 @@ function MeetingParticipantItem({
             isHighlighted = { isHighlighted }
             isModerator = { isParticipantModerator(_participant) }
             local = { _local }
+            moderatorLabel = { _moderatorLabel }
             onLeave = { onLeave }
             openDrawerForParticipant = { openDrawerForParticipant }
             overflowDrawer = { overflowDrawer }
@@ -307,6 +315,7 @@ function _mapStateToProps(state: IReduxState, ownProps: any) {
         _local: Boolean(participant?.local),
         _localVideoOwner: Boolean(ownerId === localParticipantId),
         _matchesSearch,
+        _moderatorLabel: getModeratorBadge(state, participant).label,
         _participant: participant,
         _participantID: participant?.id ?? '',
         _quickActionButtonType,

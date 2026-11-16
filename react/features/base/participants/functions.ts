@@ -828,3 +828,22 @@ export function isPrivateChatEnabledSelf(state: IReduxState): boolean {
 
     return isPrivateChatEnabled(localParticipant, state, true);
 }
+
+/**
+ * How a moderator is labelled when config.moderatorBadge is set: every moderator is shown with its label
+ * (for example "Doctor"), except the one whose display name is adminName, shown with adminLabel. Names come
+ * from the signed token and cannot be changed in the call, so the name identifies the admin.
+ *
+ * @param {IStateful} stateful - The redux store or state.
+ * @param {IParticipant} participant - The participant.
+ * @returns {Object} - Admin flag and label; no label means the stock moderator badge.
+ */
+export function getModeratorBadge(stateful: IStateful, participant?: IParticipant): { admin: boolean; label?: string; } {
+    const { adminLabel, adminName, label } = toState(stateful)['features/base/config'].moderatorBadge ?? {};
+    const admin = Boolean(adminName) && participant?.name === adminName;
+
+    return {
+        admin,
+        label: admin ? adminLabel : label
+    };
+}

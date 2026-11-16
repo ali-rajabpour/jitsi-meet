@@ -4,7 +4,11 @@ import { connect } from 'react-redux';
 import { IReduxState } from '../../../app/types';
 import { MEDIA_TYPE } from '../../../base/media/constants';
 import { PARTICIPANT_ROLE } from '../../../base/participants/constants';
-import { getParticipantByIdOrUndefined, isScreenShareParticipantById } from '../../../base/participants/functions';
+import {
+    getModeratorBadge,
+    getParticipantByIdOrUndefined,
+    isScreenShareParticipantById
+} from '../../../base/participants/functions';
 import {
     getVideoTrackByParticipant,
     isLocalTrackMuted,
@@ -20,6 +24,11 @@ import ScreenShareIndicator from './ScreenShareIndicator';
  * The type of the React {@code Component} props of {@link StatusIndicators}.
  */
 interface IProps {
+
+    /**
+     * How the moderator badge is shown (see getModeratorBadge).
+     */
+    _moderatorBadge: { admin: boolean; label?: string; };
 
     /**
      * Indicates if the audio muted indicator should be visible or not.
@@ -61,6 +70,7 @@ class StatusIndicators extends Component<IProps> {
      */
     override render() {
         const {
+            _moderatorBadge,
             _showAudioMutedIndicator,
             _showModeratorIndicator,
             _showScreenShareIndicator,
@@ -71,7 +81,12 @@ class StatusIndicators extends Component<IProps> {
         return (
             <>
                 { _showAudioMutedIndicator && <AudioMutedIndicator tooltipPosition = { tooltipPosition } /> }
-                { _showModeratorIndicator && <ModeratorIndicator tooltipPosition = { tooltipPosition } />}
+                { _showModeratorIndicator && (
+                    <ModeratorIndicator
+                        admin = { _moderatorBadge.admin }
+                        label = { _moderatorBadge.label }
+                        tooltipPosition = { tooltipPosition } />
+                )}
                 { _showScreenShareIndicator && <ScreenShareIndicator tooltipPosition = { tooltipPosition } /> }
             </>
         );
@@ -113,6 +128,7 @@ function _mapStateToProps(state: IReduxState, ownProps: any) {
     const { disableModeratorIndicator } = state['features/base/config'];
 
     return {
+        _moderatorBadge: getModeratorBadge(state, participant),
         _showAudioMutedIndicator: isAudioMuted && audio,
         _showModeratorIndicator:
             !disableModeratorIndicator && participant && participant.role === PARTICIPANT_ROLE.MODERATOR && moderator,

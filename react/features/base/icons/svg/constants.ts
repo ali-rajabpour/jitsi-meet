@@ -1,6 +1,7 @@
 import { default as IconAI } from './AI.svg';
 import { default as IconRecordAccount } from './account-record.svg';
 import { default as IconAddUser } from './add-user.svg';
+import { default as IconAdmin } from './admin.svg';
 import { default as IconArrowBack } from './arrow-back.svg';
 import { default as IconArrowDownLarge } from './arrow-down-large.svg';
 import { default as IconArrowDown } from './arrow-down.svg';
@@ -22,6 +23,7 @@ import { default as IconCode } from './code.svg';
 import { default as IconConnection } from './connection.svg';
 import { default as IconRecordContact } from './contact-record.svg';
 import { default as IconCopy } from './copy.svg';
+import { default as IconDoctor } from './doctor.svg';
 import { default as IconDotsHorizontal } from './dots-horizontal.svg';
 import { default as IconDownload } from './download.svg';
 import { default as IconE2EE } from './e2ee.svg';
@@ -121,6 +123,7 @@ import { default as IconYahoo } from './yahoo.svg';
  */
 export const DEFAULT_ICON: Record<string, any> = {
     IconAddUser,
+    IconAdmin,
     IconAI,
     IconArrowBack,
     IconArrowDown,
@@ -181,6 +184,7 @@ export const DEFAULT_ICON: Record<string, any> = {
     IconMinus,
     IconMicSlash,
     IconModerator,
+    IconDoctor,
     IconNoiseSuppressionOff,
     IconNoiseSuppressionOn,
     IconArrowRight,
